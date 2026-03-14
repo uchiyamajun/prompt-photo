@@ -1,0 +1,291 @@
+import React, { useState, useEffect } from 'react';
+import { Camera, Copy, Check, Sparkles, SlidersHorizontal, Image as ImageIcon, MapPin, Sun, AlertTriangle } from 'lucide-react';
+
+const App = () => {
+  // --- State ---
+  const [subject, setSubject] = useState('20歳の日本人女性の顔が写っている。赤メガネ');
+  const [location, setLocation] = useState('ラーメン屋');
+  const [lighting, setLighting] = useState('屋内の自然光');
+  
+  const [composition, setComposition] = useState([
+    '構図が雑',
+    '顔の一部が映っていない'
+  ]);
+  
+  const [cameraState, setCameraState] = useState([
+    '少し傾いている',
+    '手ブレしている',
+    'カメラ目線ではない'
+  ]);
+  
+  const [quality, setQuality] = useState([
+    'スマホで撮った日常のスナップ写真',
+    '低解像度ぎみ',
+    '無加工でリアル'
+  ]);
+
+  const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // --- Options Data ---
+  const lightingOptions = [
+    '屋内の自然光', '薄暗い照明', '強い蛍光灯', '晴れた屋外', '曇り空', '夜の街灯', 'フラッシュ撮影'
+  ];
+
+  const compositionOptions = [
+    '構図が雑', '顔の一部が映っていない', '見切れている', '被写体が中央にない', '背景がごちゃごちゃしている'
+  ];
+
+  const cameraStateOptions = [
+    '少し傾いている', '手ブレしている', 'カメラ目線ではない', 'ピンボケしている', '横顔', '後ろ姿'
+  ];
+
+  const qualityOptions = [
+    'スマホで撮った日常のスナップ写真', '無加工でリアル', '低解像度ぎみ', 'ノイズ混じり', '色褪せた', '使い捨てカメラ風'
+  ];
+
+  // --- Logic ---
+  // 配列のトグル処理
+  const toggleOption = (state, setState, option) => {
+    if (state.includes(option)) {
+      setState(state.filter(item => item !== option));
+    } else {
+      setState([...state, option]);
+    }
+  };
+
+  // プロンプトの生成
+  useEffect(() => {
+    const parts = [];
+
+    // ベースとなる画質（スマホ写真など）を先頭に
+    const baseQuality = quality.find(q => q.includes('スナップ') || q.includes('カメラ風'));
+    if (baseQuality) parts.push(`${baseQuality}。`);
+
+    // 場所と照明
+    if (location || lighting) {
+      const locLight = [location, lighting].filter(Boolean).join('、');
+      parts.push(`${locLight}。`);
+    }
+
+    // 構図
+    if (composition.length > 0) {
+      parts.push(`${composition.join('で、')}。`);
+    }
+
+    // カメラの状態
+    if (cameraState.length > 0) {
+      parts.push(`${cameraState.join('ていて、')}。`);
+    }
+
+    // 残りの画質設定
+    const remainingQuality = quality.filter(q => q !== baseQuality);
+    if (remainingQuality.length > 0) {
+      parts.push(`${remainingQuality.join('。')}。`);
+    }
+
+    // 被写体
+    if (subject) {
+      parts.push(`被写体は${subject}。`);
+    }
+
+    // 日本語の不自然な句読点を整理
+    let finalPrompt = parts.join('')
+      .replace(/。ていて、。/g, 'ていて、')
+      .replace(/。で、。/g, 'で、')
+      .replace(/。。/g, '。');
+
+    setGeneratedPrompt(finalPrompt);
+  }, [subject, location, lighting, composition, cameraState, quality]);
+
+  // クリップボードにコピー
+  const handleCopy = () => {
+    navigator.clipboard.writeText(generatedPrompt);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // --- UI Components ---
+  const SectionTitle = ({ icon: Icon, title }) => (
+    <div className="flex items-center space-x-2 mb-4 text-slate-700 border-b pb-2">
+      <Icon className="w-5 h-5 text-indigo-500" />
+      <h2 className="text-lg font-semibold">{title}</h2>
+    </div>
+  );
+
+  const TogglePill = ({ label, selected, onClick }) => (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${
+        selected
+          ? 'bg-indigo-50 border-indigo-500 text-indigo-700 shadow-sm'
+          : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-slate-50'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8 font-sans">
+      <div className="max-w-6xl mx-auto">
+        
+        {/* Header */}
+        <header className="mb-8 text-center md:text-left">
+          <div className="flex items-center justify-center md:justify-start space-x-3 mb-2">
+            <Camera className="w-8 h-8 text-indigo-600" />
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-800">リアル・スナップ ジェネレーター</h1>
+          </div>
+          <p className="text-slate-600">あえて「素人っぽさ」や「不完全さ」を演出して、AI画像にリアリティを持たせるプロンプトを作成します。</p>
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+          
+          {/* Left Column: Controls */}
+          <div className="md:col-span-7 lg:col-span-8 space-y-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+            
+            {/* 1. 基本設定 */}
+            <section>
+              <SectionTitle icon={ImageIcon} title="1. 被写体と場所" />
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">被写体 (Subject)</label>
+                  <textarea
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value)}
+                    className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow text-slate-800"
+                    rows="2"
+                    placeholder="例: 20歳の日本人女性の顔が写っている。赤メガネ"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">場所・シチュエーション (Location)</label>
+                  <div className="relative">
+                    <MapPin className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={location}
+                      onChange={(e) => setLocation(e.target.value)}
+                      className="w-full pl-10 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow text-slate-800"
+                      placeholder="例: ラーメン屋、夜のコンビニ前"
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 2. ライティング */}
+            <section>
+              <SectionTitle icon={Sun} title="2. ライティング (Lighting)" />
+              <div className="flex flex-wrap gap-2">
+                {lightingOptions.map(opt => (
+                  <TogglePill
+                    key={opt}
+                    label={opt}
+                    selected={lighting === opt}
+                    onClick={() => setLighting(opt)} // Radio behavior
+                  />
+                ))}
+              </div>
+            </section>
+
+            {/* 3. 構図の崩し */}
+            <section>
+              <SectionTitle icon={AlertTriangle} title="3. 構図・カメラの不完全さ (Imperfections)" />
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm text-slate-500 mb-2">構図の雑さ</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {compositionOptions.map(opt => (
+                      <TogglePill
+                        key={opt}
+                        label={opt}
+                        selected={composition.includes(opt)}
+                        onClick={() => toggleOption(composition, setComposition, opt)}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm text-slate-500 mb-2">手ブレ・目線など</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {cameraStateOptions.map(opt => (
+                      <TogglePill
+                        key={opt}
+                        label={opt}
+                        selected={cameraState.includes(opt)}
+                        onClick={() => toggleOption(cameraState, setCameraState, opt)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* 4. 画質・質感 */}
+            <section>
+              <SectionTitle icon={SlidersHorizontal} title="4. 画質・質感 (Quality & Texture)" />
+              <div className="flex flex-wrap gap-2">
+                {qualityOptions.map(opt => (
+                  <TogglePill
+                    key={opt}
+                    label={opt}
+                    selected={quality.includes(opt)}
+                    onClick={() => toggleOption(quality, setQuality, opt)}
+                  />
+                ))}
+              </div>
+            </section>
+
+          </div>
+
+          {/* Right Column: Sticky Output */}
+          <div className="md:col-span-5 lg:col-span-4">
+            <div className="sticky top-6 bg-slate-800 rounded-2xl p-6 shadow-xl text-white">
+              <div className="flex items-center space-x-2 mb-4 text-indigo-300 border-b border-slate-700 pb-3">
+                <Sparkles className="w-5 h-5" />
+                <h2 className="text-lg font-semibold">生成されたプロンプト</h2>
+              </div>
+              
+              <div className="bg-slate-900 rounded-xl p-4 mb-6 relative group">
+                <p className="text-slate-200 leading-relaxed min-h-[150px] text-lg">
+                  {generatedPrompt || '設定を選択してください...'}
+                </p>
+              </div>
+
+              <button
+                onClick={handleCopy}
+                disabled={!generatedPrompt}
+                className={`w-full py-4 rounded-xl flex items-center justify-center space-x-2 font-bold transition-all duration-200 ${
+                  copied 
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/30' 
+                    : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-lg shadow-indigo-500/30'
+                }`}
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-5 h-5" />
+                    <span>コピーしました！</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-5 h-5" />
+                    <span>プロンプトをコピー</span>
+                  </>
+                )}
+              </button>
+
+              <div className="mt-6 text-sm text-slate-400 bg-slate-800/50 p-4 rounded-lg border border-slate-700">
+                <p className="font-semibold text-slate-300 mb-1">💡 ヒント</p>
+                <p>このプロンプトは、DALL-E 3やNiji・journeyなど、日本語を理解できる画像生成AIでそのまま使用すると最も効果を発揮します。</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default App;

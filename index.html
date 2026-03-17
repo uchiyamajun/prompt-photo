@@ -35,7 +35,7 @@
               </svg>
               <h2 class="text-lg font-semibold">1. 被写体と場所</h2>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-6">
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">被写体 (Subject)</label>
                 <textarea
@@ -44,6 +44,10 @@
                   rows="2"
                   placeholder="例: 20歳の日本人女性の顔が写っている。赤メガネ"
                 ></textarea>
+                <div class="mt-2">
+                  <h3 class="text-xs text-slate-500 mb-2">プリセットから選ぶ:</h3>
+                  <div id="subject-presets-container" class="flex flex-wrap gap-2"></div>
+                </div>
               </div>
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">場所・シチュエーション (Location)</label>
@@ -57,6 +61,10 @@
                     class="w-full pl-10 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-shadow text-slate-800"
                     placeholder="例: ラーメン屋、夜のコンビニ前"
                   />
+                </div>
+                <div class="mt-2">
+                  <h3 class="text-xs text-slate-500 mb-2">プリセットから選ぶ:</h3>
+                  <div id="location-presets-container" class="flex flex-wrap gap-2"></div>
                 </div>
               </div>
             </div>
@@ -149,6 +157,8 @@
   <script>
     // --- 選択肢のデータ ---
     const OPTIONS = {
+      subjectPresets: ['20歳の日本人女性の顔が写っている。', '疲れた表情のサラリーマン', '遊んでいるコーギー犬', '制服姿の女子高生', '公園の茶トラ猫'],
+      locationPresets: ['おしゃれなカフェ', '夜のコンビニ前', '雨の日の駅のホーム', '散らかった部屋', '寂れた商店街'],
       lighting: ['屋内の自然光', '薄暗い照明', '強い蛍光灯', '晴れた屋外', '曇り空', '夜の街灯', 'フラッシュ撮影'],
       composition: ['構図が雑', '顔の一部が映っていない', '見切れている', '被写体が中央にない', '背景がごちゃごちゃしている'],
       cameraState: ['少し傾いている', '手ブレしている', 'カメラ目線ではない', 'ピンボケしている', '横顔', '後ろ姿'],
@@ -158,7 +168,7 @@
     // --- アプリケーションの状態 (State) ---
     const state = {
       subject: '20歳の日本人女性の顔が写っている。赤メガネ',
-      location: 'ラーメン屋',
+      location: 'おしゃれなカフェ',
       lighting: '屋内の自然光',
       composition: ['構図が雑', '顔の一部が映っていない'],
       cameraState: ['少し傾いている', '手ブレしている', 'カメラ目線ではない'],
@@ -186,9 +196,37 @@
       document.getElementById('copy-btn').addEventListener('click', handleCopy);
 
       // UIの初回レンダリング
+      renderPresets();
       renderAllTags();
       updatePrompt();
     };
+
+    // --- プリセットUIのレンダリング ---
+    function renderPresets() {
+      renderPresetTags('subject-presets-container', OPTIONS.subjectPresets, 'subject-input', 'subject');
+      renderPresetTags('location-presets-container', OPTIONS.locationPresets, 'location-input', 'location');
+    }
+
+    function renderPresetTags(containerId, options, inputId, stateKey) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+      
+      options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.textContent = opt;
+        btn.className = "px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-slate-50";
+        
+        btn.onclick = () => {
+          // 入力欄を上書き
+          const inputEl = document.getElementById(inputId);
+          inputEl.value = opt;
+          state[stateKey] = opt;
+          updatePrompt();
+        };
+        
+        container.appendChild(btn);
+      });
+    }
 
     // --- タグUIのレンダリング ---
     function renderAllTags() {
